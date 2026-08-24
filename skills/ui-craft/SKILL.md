@@ -63,6 +63,29 @@ run the scans first so the question arrives with evidence.
 
 `frontend-design` replaces step 2 for one-off artifacts with no codebase to fit.
 
+## Setup
+
+One time, and everything below is free.
+
+```
+git clone https://github.com/XploY04/shaktiyan.git
+mkdir -p ~/.claude/skills
+cp -R shaktiyan/skills/ui-craft ~/.claude/skills/
+cd ~/.claude/skills/ui-craft/scripts && npm install
+```
+
+Needs Node 18+ and Google Chrome installed: the scripts launch your system
+Chrome with `channel: 'chrome'`, so nothing extra downloads. No Chrome? Run
+`npx playwright install chromium` and drop `channel: 'chrome'` from the
+`chromium.launch(...)` call in each script.
+
+`node_modules/` is not committed, so `npm install` is required after cloning.
+
+Optional, all free: the sub-skills the pipeline routes to (`impeccable`,
+`shadcn`, `boneyard`, `design-motion-principles`, `refero-design`). Missing ones
+mean their step is skipped, not that this skill breaks. Say which are missing
+rather than implying that step ran.
+
 ## Step 6 — run both scans
 
 ```
