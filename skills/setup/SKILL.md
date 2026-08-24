@@ -15,13 +15,13 @@ a timeline of what each session did.
 workspace/
 ├── CLAUDE.md                    auto-loaded every session: repo map, navigation, rules
 └── .claude/
-    ├── settings.json            timeline hooks
-    ├── hooks/                   timeline-start.sh, timeline-end.sh
     ├── <repo>/                  mirrors the repo's real folder tree
     │   ├── CLAUDE.md            what this repo is, stack, entry points, structure
     │   └── <folder>/CLAUDE.md   what lives in this folder and why
     └── timeline/
-        └── 2026-08-25-topic.md  one entry per session that changed something
+        ├── 2026-08-25-topic.md  one entry per session that changed something
+        └── archive/
+            └── summary-2026-06-02-to-2026-08-14.md   folded older entries
 ```
 
 The mirror lives under `.claude/` so the real repos stay clean. They have their
@@ -95,46 +95,44 @@ Before working in a repo, read `.claude/<repo>/CLAUDE.md`. Before changing a
 folder, read `.claude/<repo>/<folder>/CLAUDE.md` if it exists. Read what the
 task needs, not the whole tree.
 
-Recent sessions are in `.claude/timeline/`, newest filename last. Read one when
-the task touches work someone did before, or when you need to know why something
-is the way it is. Do not read the whole folder.
+Recent sessions are in `.claude/timeline/`, newest filename last. Older ones are
+folded into `.claude/timeline/archive/summary-<start>-to-<end>.md`. Read a single
+entry when the task touches earlier work or you need to know why something is the
+way it is. Read an archive only when the trail leads there. Never read the folder
+whole.
 
 ## Keeping this current
 When a session changes structure (new folder, new service, moved entry point,
 new dependency), update the affected `.claude/**/CLAUDE.md` in the same session.
 When a session changes anything, write `.claude/timeline/<YYYY-MM-DD>-<topic>.md`
-before finishing: what the goal was, what changed, what to know next time. If you
-do not, the session-end hook writes a bare commit list instead.
+before finishing: what the goal was, what changed, which files, what to know next
+time. A session that only answered questions writes nothing.
+
+Then count the loose entries. More than 10, and fold everything except the newest
+10 into `.claude/timeline/archive/summary-<oldest-date>-to-<newest-date>.md`: a
+paragraph per entry, keeping decisions and reasons, dropping routine detail.
+Delete the entries you folded, and add the archive to the list below. Archives
+already written are never rewritten or merged, since summarizing a summary loses
+what the summary was for.
+
+## Archives
+| Range | File |
+|-------|------|
+| <start> to <end> | `.claude/timeline/archive/summary-<start>-to-<end>.md` |
 
 Re-run `/setup` after large merges or when a repo is added or removed.
 ```
 
-### 6. Install the timeline hooks
+### 6. Create the timeline folder
 
 ```
-mkdir -p .claude/hooks .claude/timeline
-cp ~/.claude/skills/setup/hooks/*.sh .claude/hooks/
-chmod +x .claude/hooks/*.sh
+mkdir -p .claude/timeline/archive
 ```
 
-Merge into `.claude/settings.json`, keeping any hooks already there:
-
-```json
-{
-  "hooks": {
-    "SessionStart": [{ "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/timeline-start.sh" }] }],
-    "SessionEnd":   [{ "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/timeline-end.sh" }] }]
-  }
-}
-```
-
-`timeline-start.sh` records every repo's HEAD at session start.
-`timeline-end.sh` compares, and writes an entry only if something changed. A
-session where nothing moved writes nothing. If Claude already wrote a timeline
-entry during the session, the hook leaves it alone, so the written summary always
-beats the generated one.
-
-Add `.claude/timeline/.state/` to the workspace `.gitignore`.
+Nothing else to install. The timeline is written by Claude during the session,
+under the rules in the root file. A session-end hook was considered and dropped:
+a shell script can list commits but cannot say what the session was for, and a
+bare commit list is something `git log` already gives you.
 
 ### 7. Report
 
@@ -150,7 +148,7 @@ marked unclear. Say which folders you skipped and why.
 3. For the rest, `git log --oneline <last-entry-date>..` per repo. Re-run an
    agent only where the structure moved. A busy repo whose folder map is
    unchanged needs no rewrite.
-4. Never touch `.claude/timeline/`. History is not refreshed.
+4. Never touch `.claude/timeline/` or its archive. History is not refreshed.
 
 The refresh should cost a fraction of the first run. If it does not, you are
 rebuilding rather than refreshing.
