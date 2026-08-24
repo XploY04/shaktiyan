@@ -34,6 +34,54 @@ makes deep context affordable.
 
 ## Run it
 
+## Step 0. Ask before writing anything
+
+**Never run `git add`, `git commit`, or `git push` for this tree.** What `/setup`
+writes is memory, and the user decides whether it is theirs or the team's.
+
+First, find out what tracks the workspace root:
+
+```
+git -C . rev-parse --show-toplevel 2>/dev/null
+```
+
+**Nothing returned.** The workspace is a plain folder holding repos. The files
+you write are untracked by anything. Say that plainly and carry on.
+
+**A path returned.** The workspace root is itself inside a git repo, so
+`CLAUDE.md` and `.claude/` will show up in `git status` and can reach GitHub on
+the next `git add -A`. Stop and tell the user, then let them pick:
+
+- **Keep it private** (default). Add `/CLAUDE.md` and `/.claude/` to
+  `.git/info/exclude`, which is local to their clone, never committed, and never
+  seen by teammates. Use `.gitignore` instead only if they want the whole team to
+  ignore it too, since that file is itself committed.
+- **Commit it.** A real choice, and a good one for a team that wants shared
+  context. Say what it means: every teammate gets the tree, and the timeline
+  entries become public to whoever can read the repo. Then leave the committing
+  to them.
+
+Either way, tell them **never to write credentials, tokens, or internal URLs
+into these files.** A summary is not a place for secrets.
+
+Then ask where the tree should live:
+
+- **Central** (default). One `.claude/` at the workspace root mirroring every
+  repo. The repos stay untouched, which is what you want when they have
+  teammates or separate remotes.
+- **Per repo.** Each repo carries its own `CLAUDE.md` and `.claude/`, and the
+  workspace root keeps only the index pointing at them. Pick this when the
+  context belongs with the code, for example when each repo has its own team.
+  The tracking question above then applies to each repo separately, so handle
+  each one's `.git/info/exclude` before writing.
+
+Record the answers as a line in the root `CLAUDE.md` so later sessions do not
+ask again:
+
+```markdown
+Tracking: private, excluded via .git/info/exclude. Layout: central.
+```
+
 ### 1. Discover
 
 ```
@@ -121,6 +169,9 @@ what the summary was for.
 | <start> to <end> | `.claude/timeline/archive/summary-<start>-to-<end>.md` |
 
 Re-run `/setup` after large merges or when a repo is added or removed.
+
+Tracking: <private, excluded via .git/info/exclude | committed to <repo>>
+Layout: <central | per repo>
 ```
 
 ### 6. Create the timeline folder
@@ -137,18 +188,22 @@ bare commit list is something `git log` already gives you.
 ### 7. Report
 
 Print the tree you created, the repo count, the file count, and anything you
-marked unclear. Say which folders you skipped and why.
+marked unclear. Say which folders you skipped and why. End with the tracking
+status in one line, so it is the last thing the user reads: excluded and
+invisible to git, or sitting in `git status` waiting for them to decide.
 
 ## Re-running
 
 `/setup` on a workspace that already has the tree is a refresh, not a rebuild.
 
-1. Repos in the workspace but not in `.claude/`: document them.
-2. Folders in `.claude/` whose real path is gone: delete them and say so.
-3. For the rest, `git log --oneline <last-entry-date>..` per repo. Re-run an
+1. Re-check tracking. A workspace that gained a git root since the last run
+   needs the Step 0 question asked again.
+2. Repos in the workspace but not in `.claude/`: document them.
+3. Folders in `.claude/` whose real path is gone: delete them and say so.
+4. For the rest, `git log --oneline <last-entry-date>..` per repo. Re-run an
    agent only where the structure moved. A busy repo whose folder map is
    unchanged needs no rewrite.
-4. Never touch `.claude/timeline/` or its archive. History is not refreshed.
+5. Never touch `.claude/timeline/` or its archive. History is not refreshed.
 
 The refresh should cost a fraction of the first run. If it does not, you are
 rebuilding rather than refreshing.
