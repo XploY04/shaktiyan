@@ -1,6 +1,6 @@
 ---
 name: repo-setup
-description: Map a multi-repo workspace into a layered CLAUDE.md memory system. Use when the user runs /repo-setup in a folder that holds several repos, asks to index or map a workspace, wants per-repo and per-folder context files, or wants sessions logged to a timeline. Re-run it to refresh what changed.
+description: Map a multi-repo workspace into a layered AGENTS.md and CLAUDE.md memory system. Use when the user runs /repo-setup in a folder that holds several repos, asks to index or map a workspace, wants per-repo and per-folder context files, or wants sessions logged to a timeline. Re-run it to refresh what changed.
 ---
 
 # Repo setup
@@ -13,11 +13,13 @@ a timeline of what each session did.
 
 ```
 workspace/
-├── CLAUDE.md                    auto-loaded every session: repo map, navigation, rules
+├── AGENTS.md                    the content: repo map, navigation, rules
+├── CLAUDE.md                    one line, `@AGENTS.md`
 └── .claude/
     ├── <repo>/                  mirrors the repo's real folder tree
-    │   ├── CLAUDE.md            what this repo is, stack, entry points, structure
-    │   └── <folder>/CLAUDE.md   what lives in this folder and why
+    │   ├── AGENTS.md            what this repo is, stack, entry points, structure
+    │   ├── CLAUDE.md            `@AGENTS.md`
+    │   └── <folder>/            same pair, one level down
     └── timeline/
         ├── 2026-08-25-topic.md  one entry per session that changed something
         └── archive/
@@ -34,6 +36,27 @@ makes deep context affordable.
 
 ## Run it
 
+## Every context file is a pair
+
+Write `AGENTS.md` with the content, and next to it a `CLAUDE.md` holding one
+line:
+
+```
+@AGENTS.md
+```
+
+Claude Code reads `CLAUDE.md` and not `AGENTS.md`, while Codex, Cursor, Copilot,
+and the rest read `AGENTS.md`. The import gives both the same text with one copy
+on disk, so the two can never drift. A symlink does the same job but breaks on
+Windows without Developer Mode, so the import is the default.
+
+Claude-specific instructions, if any, go under the import line in `CLAUDE.md`.
+Everything else belongs in `AGENTS.md`.
+
+This applies everywhere this skill writes: the workspace root, each repo, and
+each documented folder. When updating context later, edit `AGENTS.md`. The
+`CLAUDE.md` beside it never changes.
+
 ## Step 0. Ask before writing anything
 
 **Never run `git add`, `git commit`, or `git push` for this tree.** What `/repo-setup`
@@ -49,10 +72,10 @@ git -C . rev-parse --show-toplevel 2>/dev/null
 you write are untracked by anything. Say that plainly and carry on.
 
 **A path returned.** The workspace root is itself inside a git repo, so
-`CLAUDE.md` and `.claude/` will show up in `git status` and can reach GitHub on
+`AGENTS.md`, `CLAUDE.md`, and `.claude/` will show up in `git status` and can reach GitHub on
 the next `git add -A`. Stop and tell the user, then let them pick:
 
-- **Keep it private** (default). Add `/CLAUDE.md` and `/.claude/` to
+- **Keep it private** (default). Add `/AGENTS.md`, `/CLAUDE.md`, and `/.claude/` to
   `.git/info/exclude`, which is local to their clone, never committed, and never
   seen by teammates. Use `.gitignore` instead only if they want the whole team to
   ignore it too, since that file is itself committed.
@@ -69,13 +92,13 @@ Then ask where the tree should live:
 - **Central** (default). One `.claude/` at the workspace root mirroring every
   repo. The repos stay untouched, which is what you want when they have
   teammates or separate remotes.
-- **Per repo.** Each repo carries its own `CLAUDE.md` and `.claude/`, and the
+- **Per repo.** Each repo carries its own `AGENTS.md`, `CLAUDE.md`, and `.claude/`, and the
   workspace root keeps only the index pointing at them. Pick this when the
   context belongs with the code, for example when each repo has its own team.
   The tracking question above then applies to each repo separately, so handle
   each one's `.git/info/exclude` before writing.
 
-Record the answers as a line in the root `CLAUDE.md` so later sessions do not
+Record the answers as a line in the root `AGENTS.md` so later sessions do not
 ask again:
 
 ```markdown
@@ -132,12 +155,12 @@ get a pull through. If `--ff-only` refuses, leave the repo where it is and note
 that it has diverged.
 
 Record the branch each repo was mapped from. It goes in the repo's own
-`CLAUDE.md` and in the root table, because a map is only true for the branch it
+`AGENTS.md` and in the root table, because a map is only true for the branch it
 was read from.
 
 ### 2. Pick what gets documented
 
-A folder earns a `CLAUDE.md` when it holds source someone would need to read.
+A folder earns a file pair when it holds source someone would need to read.
 Skip anything `git check-ignore` matches, plus `node_modules`, `dist`, `build`,
 `.next`, `target`, `vendor`, `__pycache__`, coverage output, and generated
 clients. Stop at depth 3 inside a repo unless a deeper folder is a real
@@ -159,15 +182,15 @@ verbatim, since summaries are the product here.
 
 ### 4. Write the repo and folder files
 
-`.claude/<repo>/CLAUDE.md` holds purpose, stack, how to run it, entry points,
+`.claude/<repo>/AGENTS.md` holds purpose, stack, how to run it, entry points,
 the folder map with a line each, and where the sharp edges are.
 
-`.claude/<repo>/<folder>/CLAUDE.md` holds what this folder is responsible for,
+`.claude/<repo>/<folder>/AGENTS.md` holds what this folder is responsible for,
 its main files, what calls into it, what it calls out to, and the conventions it
 follows. Keep each under about 60 lines. A file nobody can skim is a file nobody
 reads.
 
-### 5. Write the root CLAUDE.md
+### 5. Write the root AGENTS.md
 
 Use this shape:
 
@@ -179,11 +202,11 @@ Use this shape:
 ## Repos
 | Repo | What it is | Mapped from | Deep context |
 |------|-----------|-------------|--------------|
-| helia | <one line> | `develop` @ <short sha> | `.claude/helia/CLAUDE.md` |
+| helia | <one line> | `develop` @ <short sha> | `.claude/helia/AGENTS.md` |
 
 ## How to navigate
-Before working in a repo, read `.claude/<repo>/CLAUDE.md`. Before changing a
-folder, read `.claude/<repo>/<folder>/CLAUDE.md` if it exists. Read what the
+Before working in a repo, read `.claude/<repo>/AGENTS.md`. Before changing a
+folder, read `.claude/<repo>/<folder>/AGENTS.md` if it exists. Read what the
 task needs, not the whole tree.
 
 Recent sessions are in `.claude/timeline/`, newest filename last. Older ones are
@@ -194,7 +217,7 @@ whole.
 
 ## Keeping this current
 When a session changes structure (new folder, new service, moved entry point,
-new dependency), update the affected `.claude/**/CLAUDE.md` in the same session.
+new dependency), update the affected `.claude/**/AGENTS.md` in the same session.
 When a session changes anything, write `.claude/timeline/<YYYY-MM-DD>-<topic>.md`
 before finishing: what the goal was, what changed, which files, what to know next
 time. A session that only answered questions writes nothing.

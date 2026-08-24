@@ -31,7 +31,10 @@ under WSL or Git Bash.
 The native installer puts `claude` in `~/.local/bin`. If that is not on your PATH,
 the script says so, and a new shell usually fixes it.
 
-Add `--rules` to also install the repo's global `CLAUDE.md` to `~/.claude/CLAUDE.md`.
+Add `--rules` to also install the repo's global rules: `rules/AGENTS.md` becomes
+`~/.claude/AGENTS.md`, and `rules/CLAUDE.md`, a single `@AGENTS.md` import line,
+becomes `~/.claude/CLAUDE.md`. Claude Code reads the import, every other agent
+reads `AGENTS.md`, and there is only one copy of the text.
 It backs up any existing file first, but it does overwrite, so only pass it on a
 machine where those rules should be the global ones.
 
@@ -57,6 +60,7 @@ Restart Claude Code afterward. Skills are read at startup.
 - Moves any existing folder of the same name to `<name>.backup.<timestamp>`
   rather than deleting it.
 - Runs `npm install` in any skill that ships `scripts/package.json`.
+- Installs both rules files when `--rules` is passed, backing up whatever is there.
 - Warns when `node` or Google Chrome is missing, which the `ui-craft` scans need.
 - Honours `CLAUDE_HOME` if set, which is how it gets tested without touching a
   real install.

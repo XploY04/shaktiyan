@@ -65,11 +65,14 @@ for skill in "$repo"/skills/*/; do
   fi
 done
 
-if [ "$rules" = 1 ] && [ -f "$repo/claude/CLAUDE.md" ]; then
-  global="${CLAUDE_HOME:-$HOME/.claude}/CLAUDE.md"
-  [ -f "$global" ] && cp "$global" "$global.backup.$(date +%Y%m%d%H%M%S)" && echo "backed up existing global CLAUDE.md"
-  cp "$repo/claude/CLAUDE.md" "$global"
-  echo "installed global rules to $global"
+if [ "$rules" = 1 ] && [ -f "$repo/rules/AGENTS.md" ]; then
+  home="${CLAUDE_HOME:-$HOME/.claude}"
+  stamp=$(date +%Y%m%d%H%M%S)
+  for f in AGENTS.md CLAUDE.md; do
+    [ -f "$home/$f" ] && cp "$home/$f" "$home/$f.backup.$stamp" && echo "backed up existing $f"
+    cp "$repo/rules/$f" "$home/$f"
+  done
+  echo "installed global rules to $home/AGENTS.md, imported by $home/CLAUDE.md"
 fi
 
 echo
