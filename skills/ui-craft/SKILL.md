@@ -54,7 +54,7 @@ run the scans first so the question arrives with evidence.
 
 | # | Step | Skill | Skip when |
 |---|------|-------|-----------|
-| 1 | Research references | `refero-design` | Step 0 found a world you are preserving |
+| 1 | Research references | `refero-design` (MCP-free, see below) | Step 0 found a world you are preserving |
 | 2 | Direction and build | `impeccable` | Never, for anything visible |
 | 3 | Components | `shadcn` | Not React/Tailwind, or project has its own layer |
 | 4 | Motion | `design-motion-principles` (Create) | Nothing animates |
@@ -198,15 +198,36 @@ problem, from humans with taste and too much scroll budget:
    demo queries are normal, and should be labelled illustrative. Invented user
    counts, testimonials, review scores, and press quotes are not.
 
-## Optional MCP layer
+## Free-only stack
 
-Check before step 1. If none are configured, say which are missing rather than
-implying you researched.
+Everything this skill calls for is free and needs no subscription. Where a
+popular tool is paywalled, the free replacement is listed. If you reach for a
+paid service anyway, say so first.
 
-- **Mobbin MCP** — 600k+ real shipped product screens.
-- **Refero MCP** — styles, screens, flows; powers `refero-design` fully.
-- **21st.dev (Magic)** — generates React/Tailwind components.
-- **LottieFiles Creator MCP** — builds real Lottie files.
+**Reference research** (replaces Mobbin MCP and Refero MCP, both of which put
+their MCP behind a paid plan). Use `WebSearch` plus `WebFetch`, and capture the
+references yourself with the Playwright already installed here:
+
+```
+node shot.mjs   # edit the URL, writes a full-page screenshot
+```
+
+Free galleries worth searching by name: Godly, Land-book, Lapa Ninja, SiteInspire,
+One Page Love, Awwwards, Screenlane. Mobbin's own site still browses free with a
+result cap. Name the three references you picked and what you are taking from
+each; that is what the paid tools were for.
+
+**Components**: shadcn/ui, Origin UI, Magic UI, Radix Primitives, Headless UI,
+daisyUI. All MIT. Replaces 21st.dev Magic, whose free tier caps installs.
+
+**Motion**: Motion (motion.dev, MIT), GSAP (free for commercial use including
+every former Club plugin since April 2025), or native CSS and the Web Animations
+API. Replaces the LottieFiles Creator MCP; when a real Lottie is needed, take a
+free-licensed one from the LottieFiles library or hand-author SVG.
+
+**Icons**: Lucide, Phosphor, Tabler, Simple Icons.
+**Fonts**: Google Fonts, Fontshare, Fontsource. Check the refuse list first.
+**Photos**: Unsplash, Pexels. Label anything illustrative.
 
 ## Shortcuts
 
