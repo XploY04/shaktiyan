@@ -1,9 +1,9 @@
 ---
-name: setup
-description: Map a multi-repo workspace into a layered CLAUDE.md memory system. Use when the user runs /setup in a folder that holds several repos, asks to index or map a workspace, wants per-repo and per-folder context files, or wants sessions logged to a timeline. Re-run it to refresh what changed.
+name: repo-setup
+description: Map a multi-repo workspace into a layered CLAUDE.md memory system. Use when the user runs /repo-setup in a folder that holds several repos, asks to index or map a workspace, wants per-repo and per-folder context files, or wants sessions logged to a timeline. Re-run it to refresh what changed.
 ---
 
-# Setup
+# Repo setup
 
 Builds a memory system for a workspace that holds several independent repos side
 by side. One small file that always loads, a deep tree that loads on demand, and
@@ -36,7 +36,7 @@ makes deep context affordable.
 
 ## Step 0. Ask before writing anything
 
-**Never run `git add`, `git commit`, or `git push` for this tree.** What `/setup`
+**Never run `git add`, `git commit`, or `git push` for this tree.** What `/repo-setup`
 writes is memory, and the user decides whether it is theirs or the team's.
 
 First, find out what tracks the workspace root:
@@ -168,7 +168,7 @@ what the summary was for.
 |-------|------|
 | <start> to <end> | `.claude/timeline/archive/summary-<start>-to-<end>.md` |
 
-Re-run `/setup` after large merges or when a repo is added or removed.
+Re-run `/repo-setup` after large merges or when a repo is added or removed.
 
 Tracking: <private, excluded via .git/info/exclude | committed to <repo>>
 Layout: <central | per repo>
@@ -194,7 +194,7 @@ invisible to git, or sitting in `git status` waiting for them to decide.
 
 ## Re-running
 
-`/setup` on a workspace that already has the tree is a refresh, not a rebuild.
+`/repo-setup` on a workspace that already has the tree is a refresh, not a rebuild.
 
 1. Re-check tracking. A workspace that gained a git root since the last run
    needs the Step 0 question asked again.
