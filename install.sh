@@ -1,18 +1,36 @@
 #!/usr/bin/env bash
 # Installs every skill in this repo into ~/.claude/skills.
-# Usage: ./install.sh [--link] [--rules]
+# Usage: ./install.sh [--link] [--rules] [--no-claude]
 set -euo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 dest="${CLAUDE_HOME:-$HOME/.claude}/skills"
-link=0; rules=0
+link=0; rules=0; claude=1
 for a in "$@"; do
   case "$a" in
     --link) link=1 ;;
     --rules) rules=1 ;;
+    --no-claude) claude=0 ;;
     *) echo "unknown option: $a"; exit 2 ;;
   esac
 done
+
+# Claude Code itself, since a fresh machine has none.
+if [ "$claude" = 1 ]; then
+  if command -v claude >/dev/null 2>&1; then
+    echo "claude already installed: $(claude --version 2>/dev/null || echo unknown)"
+  elif [ "$(uname)" = Darwin ] || [ "$(uname)" = Linux ]; then
+    echo "installing Claude Code from https://claude.ai/install.sh"
+    curl -fsSL https://claude.ai/install.sh | bash
+    export PATH="$HOME/.local/bin:$PATH"
+    case ":$PATH:" in
+      *":$HOME/.local/bin:"*) ;;
+      *) echo "add ~/.local/bin to your PATH to run claude" ;;
+    esac
+  else
+    echo "WARNING: install Claude Code manually on this platform, see https://code.claude.com/docs/en/setup"
+  fi
+fi
 
 mkdir -p "$dest"
 installed=()
@@ -59,4 +77,5 @@ echo "installed ${#installed[@]} skill(s) into $dest: ${installed[*]}"
 command -v node >/dev/null 2>&1 || echo "WARNING: node not found, the ui-craft scans will not run"
 [ -d "/Applications/Google Chrome.app" ] || [ "$(uname)" != Darwin ] ||
   echo "WARNING: Google Chrome not found, ui-craft scripts launch it by default"
+command -v claude >/dev/null 2>&1 || echo "WARNING: claude is not on PATH yet, open a new shell"
 echo "restart Claude Code to pick the skills up"

@@ -5,8 +5,9 @@ description: Install or update every skill from the shaktiyan repo onto this mac
 
 # Workstation setup
 
-Puts every skill in the shaktiyan repo into `~/.claude/skills` on this machine,
-installs what those skills depend on, and reports what is missing.
+Installs Claude Code if the machine does not have it, puts every skill in the
+shaktiyan repo into `~/.claude/skills`, installs what those skills depend on, and
+reports what is missing.
 
 **A fresh machine has no skills, so it cannot invoke this one.** The real
 bootstrap is `install.sh` in the repo. This skill drives that script for the
@@ -19,6 +20,16 @@ On a brand new machine, the user runs the two commands in "Cold start" by hand.
 git clone https://github.com/XploY04/shaktiyan.git ~/shaktiyan
 ~/shaktiyan/install.sh
 ```
+
+The script installs Claude Code first when `claude` is not on the PATH, using the
+official installer at `https://claude.ai/install.sh`. It skips that step when
+`claude` already answers, and prints the version it found. Pass `--no-claude` to
+skip it outright. Windows is not covered by this path: install Claude Code with
+`irm https://claude.ai/install.ps1 | iex` in PowerShell first, then run the rest
+under WSL or Git Bash.
+
+The native installer puts `claude` in `~/.local/bin`. If that is not on your PATH,
+the script says so, and a new shell usually fixes it.
 
 Add `--rules` to also install the repo's global `CLAUDE.md` to `~/.claude/CLAUDE.md`.
 It backs up any existing file first, but it does overwrite, so only pass it on a
@@ -41,6 +52,7 @@ Restart Claude Code afterward. Skills are read at startup.
 
 ## What the script does
 
+- Installs Claude Code when missing, on macOS, Linux, and WSL.
 - Copies each `skills/*/` that has a `SKILL.md` into `~/.claude/skills/`.
 - Moves any existing folder of the same name to `<name>.backup.<timestamp>`
   rather than deleting it.
@@ -49,12 +61,16 @@ Restart Claude Code afterward. Skills are read at startup.
 - Honours `CLAUDE_HOME` if set, which is how it gets tested without touching a
   real install.
 
-It never edits settings, never installs system packages, and never touches a
-skill this repo does not ship.
+It never edits settings, never installs system packages beyond Claude Code
+itself, and never touches a skill this repo does not ship.
+
+Authentication is not automated. After the first install, run `claude` and follow
+the browser login.
 
 ## Checking an install
 
 ```
+claude --version
 ls ~/.claude/skills
 node ~/.claude/skills/ui-craft/scripts/audit.mjs http://localhost:3000
 ```
