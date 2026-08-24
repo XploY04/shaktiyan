@@ -92,6 +92,49 @@ Each hit is a repo. Note its remote, default branch, and package manifest.
 If the workspace has no nested repos, treat the whole folder as one repo and
 build the same tree with a single entry.
 
+### 1b. Put each repo on the branch worth mapping
+
+Context taken from a stale branch is wrong context. For each repo found, fetch
+and pick the branch to read from, in this order:
+
+```
+git -C <repo> fetch --all --prune
+git -C <repo> branch -r --format='%(refname:short)'
+```
+
+Priority, first match wins. Names vary, so match on the family, not one spelling:
+
+1. **dev**: `dev`, `develop`, `development`, `devel`
+2. **staging**: `staging`, `stage`, `qa`, `uat`, `preprod`, `pre-prod`
+3. **main**: `main`, `master`, `trunk`, or the remote HEAD from
+   `git -C <repo> symbolic-ref refs/remotes/origin/HEAD`
+
+A repo with none of these keeps whatever branch it is on. Say so.
+
+Before switching anything, check the working tree:
+
+```
+git -C <repo> status --porcelain
+git -C <repo> rev-parse --abbrev-ref HEAD
+```
+
+- **Clean, and not already on the winner**: check it out, then
+  `git -C <repo> pull --ff-only`. Report the switch.
+- **Clean, already on the winner**: `git -C <repo> pull --ff-only` only.
+- **Dirty, or mid-rebase or mid-merge**: change nothing. Map the current branch
+  and say plainly that this repo was read from `<branch>` with uncommitted work
+  present, so the map may not match any branch on the remote.
+- **On a feature branch with a clean tree**: ask before leaving it. Someone
+  parked there on purpose, and a silent checkout loses their place.
+
+Never stash, never create a branch, never force, and never resolve a conflict to
+get a pull through. If `--ff-only` refuses, leave the repo where it is and note
+that it has diverged.
+
+Record the branch each repo was mapped from. It goes in the repo's own
+`CLAUDE.md` and in the root table, because a map is only true for the branch it
+was read from.
+
 ### 2. Pick what gets documented
 
 A folder earns a `CLAUDE.md` when it holds source someone would need to read.
@@ -134,9 +177,9 @@ Use this shape:
 <one paragraph: what this workspace is and how the repos relate>
 
 ## Repos
-| Repo | What it is | Deep context |
-|------|-----------|--------------|
-| helia | <one line> | `.claude/helia/CLAUDE.md` |
+| Repo | What it is | Mapped from | Deep context |
+|------|-----------|-------------|--------------|
+| helia | <one line> | `develop` @ <short sha> | `.claude/helia/CLAUDE.md` |
 
 ## How to navigate
 Before working in a repo, read `.claude/<repo>/CLAUDE.md`. Before changing a
@@ -188,7 +231,9 @@ bare commit list is something `git log` already gives you.
 ### 7. Report
 
 Print the tree you created, the repo count, the file count, and anything you
-marked unclear. Say which folders you skipped and why. End with the tracking
+marked unclear. Say which folders you skipped and why, and list every repo with
+the branch it was mapped from, flagging any you left on a dirty or diverged
+tree. End with the tracking
 status in one line, so it is the last thing the user reads: excluded and
 invisible to git, or sitting in `git status` waiting for them to decide.
 
@@ -200,10 +245,13 @@ invisible to git, or sitting in `git status` waiting for them to decide.
    needs the Step 0 question asked again.
 2. Repos in the workspace but not in `.claude/`: document them.
 3. Folders in `.claude/` whose real path is gone: delete them and say so.
-4. For the rest, `git log --oneline <last-entry-date>..` per repo. Re-run an
-   agent only where the structure moved. A busy repo whose folder map is
-   unchanged needs no rewrite.
-5. Never touch `.claude/timeline/` or its archive. History is not refreshed.
+4. Re-run Step 1b first. A repo that gained a `develop` since last time should
+   be remapped from it, and a repo whose recorded branch no longer exists needs
+   a fresh pick.
+5. For the rest, `git log --oneline <recorded sha>..` per repo. Re-run an agent
+   only where the structure moved. A busy repo whose folder map is unchanged
+   needs no rewrite.
+6. Never touch `.claude/timeline/` or its archive. History is not refreshed.
 
 The refresh should cost a fraction of the first run. If it does not, you are
 rebuilding rather than refreshing.
