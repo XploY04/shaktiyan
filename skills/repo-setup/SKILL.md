@@ -20,6 +20,8 @@ workspace/
     │   ├── AGENTS.md            what this repo is, stack, entry points, structure
     │   ├── CLAUDE.md            `@AGENTS.md`
     │   └── <folder>/            same pair, one level down
+    ├── contracts/               one file per seam two repos must agree on
+    │   └── api-surface.md
     └── timeline/
         ├── 2026-08-25-topic.md  one entry per session that changed something
         └── archive/
@@ -174,11 +176,47 @@ top-level source folder instead. Give each agent the folder and this contract:
 > Read the source in <path>. Return: one-line purpose, stack and key
 > dependencies, entry points, folder-by-folder summary of what lives where,
 > the data flow through it, external services it talks to, and anything a new
-> contributor gets wrong on day one. Facts from the code only. Say "unclear"
-> rather than guessing.
+> contributor gets wrong on day one. Also report what this folder must stay in
+> sync with outside itself: an API it serves or calls, a schema it shares, an id
+> or constant repeated elsewhere. Facts from the code only. Say "unclear" rather
+> than guessing.
 
 Then write the files from what comes back. Do not paste an agent's report
 verbatim, since summaries are the product here.
+
+### 3b. Write down the contracts between repos
+
+A folder file can only hold facts that live in that folder. The facts that break
+a shared product live between repos: an API surface and the client that calls it,
+a schema and its three consumers, a deep-link id repeated across four manifests,
+a shipped feature set and the marketing page describing it. No folder owns those,
+so nobody updates them, and they are the ones that cost a day when they drift.
+
+Give each seam a file in `.claude/contracts/`. A table and a rule is enough:
+
+```markdown
+# API surface
+
+| Side | Files |
+|------|-------|
+| server | `api/app/main.py` route decorators |
+| client | `app/lib/http/*.dart` |
+
+Change one side and the other needs the same change in the same session. The
+client fails at runtime, not at build time, so nothing catches a drift for you.
+```
+
+The mapping agents in step 3 report these, so you are collating rather than
+guessing. Two rules for the contents:
+
+- **Name every side.** A contract that lists two of the four places a constant
+  appears is worse than no contract, because it reads as complete.
+- **Point, do not copy.** A contract says where the truth lives. It does not
+  restate the truth. Copying the current value in creates a second source of
+  truth that starts rotting the moment you save the file.
+
+Skip this step for a workspace holding one repo, or repos that share nothing.
+Say that you skipped it and why.
 
 ### 4. Write the repo and folder files
 
@@ -189,6 +227,34 @@ the folder map with a line each, and where the sharp edges are.
 its main files, what calls into it, what it calls out to, and the conventions it
 follows. Keep each under about 60 lines. A file nobody can skim is a file nobody
 reads.
+
+Point at facts that live elsewhere instead of restating them. A file that lists
+another repo's features is stale the next time that repo ships. Name the folder
+file that owns the fact and let the reader follow it.
+
+End every file with the commit it was read from and the paths it covers:
+
+```
+<!-- mapped: <repo>@<short sha> | paths: lib/screens/, lib/view_models/ -->
+```
+
+That footer is the only thing that lets a later session tell whether the file is
+still true:
+
+```
+git -C <repo> diff --stat <sha from the footer>..HEAD -- <paths from the footer>
+```
+
+Empty output means the file still describes the code. Any other output names the
+files to re-read. Without the stamp there is no way to check, and a file nobody
+can check is a file nobody should trust.
+
+If the repo was read with uncommitted changes present, say so in the stamp rather
+than pretending the sha covers it:
+
+```
+<!-- mapped: <repo>@<short sha> plus uncommitted changes | paths: src/ -->
+```
 
 ### 5. Write the root AGENTS.md
 
@@ -204,6 +270,14 @@ Use this shape:
 |------|-----------|-------------|--------------|
 | helia | <one line> | `develop` @ <short sha> | `.claude/helia/AGENTS.md` |
 
+## Contracts
+| Seam | What must agree | File |
+|------|-----------------|------|
+| <name> | <the two or more sides> | `.claude/contracts/<name>.md` |
+
+Facts that span repos live here, not in a repo file. Read the contract before
+changing either side, and update it when a side moves.
+
 ## How to navigate
 Before working in a repo, read `.claude/<repo>/AGENTS.md`. Before changing a
 folder, read `.claude/<repo>/<folder>/AGENTS.md` if it exists. Read what the
@@ -216,8 +290,19 @@ way it is. Read an archive only when the trail leads there. Never read the folde
 whole.
 
 ## Keeping this current
+Before trusting a context file, check its footer stamp against the code:
+
+```
+git -C <repo> diff --stat <sha from the footer>..HEAD -- <paths from the footer>
+```
+
+Empty output means the file is still true. Anything else names what to re-read,
+and the file gets rewritten and re-stamped.
+
 When a session changes structure (new folder, new service, moved entry point,
 new dependency), update the affected `.claude/**/AGENTS.md` in the same session.
+When it changes something a contract covers, update the contract and touch every
+side the contract names.
 When a session changes anything, write `.claude/timeline/<YYYY-MM-DD>-<topic>.md`
 before finishing: what the goal was, what changed, which files, what to know next
 time. A session that only answered questions writes nothing.
@@ -251,10 +336,25 @@ under the rules in the root file. A session-end hook was considered and dropped:
 a shell script can list commits but cannot say what the session was for, and a
 bare commit list is something `git log` already gives you.
 
+### 6b. Check that git can see the tree
+
+If the workspace root is tracked and the user chose to commit, verify that
+nothing you just wrote is being ignored:
+
+```
+find .claude -name 'AGENTS.md' -exec git check-ignore -v {} +
+```
+
+Any output is a bug to fix before the user commits. An unanchored `.gitignore`
+pattern like `api/` matches at every depth, so it swallows `.claude/api/` along
+with the nested repo it was written to exclude. Anchor it to `/api/` and run the
+check again. Nobody notices this on their own: the files are on disk, they open
+fine, and they are simply absent from the commit.
+
 ### 7. Report
 
-Print the tree you created, the repo count, the file count, and anything you
-marked unclear. Say which folders you skipped and why, and list every repo with
+Print the tree you created, the repo count, the file count, the contracts you
+wrote, and anything you marked unclear. Say which folders you skipped and why, and list every repo with
 the branch it was mapped from, flagging any you left on a dirty or diverged
 tree. End with the tracking
 status in one line, so it is the last thing the user reads: excluded and
@@ -271,10 +371,15 @@ invisible to git, or sitting in `git status` waiting for them to decide.
 4. Re-run Step 1b first. A repo that gained a `develop` since last time should
    be remapped from it, and a repo whose recorded branch no longer exists needs
    a fresh pick.
-5. For the rest, `git log --oneline <recorded sha>..` per repo. Re-run an agent
-   only where the structure moved. A busy repo whose folder map is unchanged
-   needs no rewrite.
-6. Never touch `.claude/timeline/` or its archive. History is not refreshed.
+5. For the rest, work from the footer stamps rather than guessing. For each
+   file, `git -C <repo> diff --stat <sha>..HEAD -- <paths>`. No output means
+   leave it alone. Re-run an agent only for the files whose paths moved. A busy
+   repo whose documented folders are untouched needs no rewrite.
+6. Re-check `.claude/contracts/`. A contract whose files no longer exist is
+   stale, and a new seam that appeared since the last run needs a new file.
+7. Re-run step 6b. A `.gitignore` edited since the last run may have started
+   swallowing part of the tree.
+8. Never touch `.claude/timeline/` or its archive. History is not refreshed.
 
 The refresh should cost a fraction of the first run. If it does not, you are
 rebuilding rather than refreshing.
